@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>磁磚用量概算</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f0e8;
+      --surface: #fffdf8;
+      --ink: #26251f;
+      --muted: #706d63;
+      --line: #d8d0c1;
+      --accent: #bf5b3f;
+      --accent-dark: #8f3d29;
+      --sage: #587266;
+      --shadow: 0 20px 50px rgba(63, 52, 36, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(rgba(95, 83, 63, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(95, 83, 63, 0.045) 1px, transparent 1px),
+        var(--paper);
+      background-size: 24px 24px;
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+    }
+
+    button, input { font: inherit; }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 48px 0 64px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent-dark);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Noto Serif TC", serif;
+      font-size: clamp(2.1rem, 6vw, 4.2rem);
+      font-weight: 500;
+      line-height: 0.95;
+      letter-spacing: -0.045em;
+    }
+
+    .intro {
+      max-width: 460px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .plan-badge {
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.7);
+      padding: 12px 16px;
+      color: var(--sage);
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .form-panel { padding: 26px; }
+
+    .section + .section {
+      margin-top: 26px;
+      padding-top: 24px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    h2, h3 { margin: 0; }
+    h2 { font-size: 1.05rem; }
+
+    .step {
+      display: inline-grid;
+      place-items: center;
+      width: 26px;
+      height: 26px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: white;
+      font-size: 0.78rem;
+    }
+
+    .mode-switch, .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: transparent;
+      padding: 9px 12px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .chip:hover, .chip:focus-visible { border-color: var(--accent); }
+    .chip.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .input-wrap { position: relative; }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 0;
+      background: #fff;
+      padding: 12px 50px 12px 12px;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(191, 91, 63, 0.12); }
+
+    .unit {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 0.78rem;
+      pointer-events: none;
+    }
+
+    .hidden { display: none !important; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .button {
+      border: 1px solid var(--ink);
+      padding: 11px 15px;
+      background: var(--ink);
+      color: white;
+      cursor: pointer;
+    }
+
+    .button.secondary { background: transparent; color: var(--ink); }
+    .button:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+    .button.secondary:hover { color: white; }
+
+    .result-panel { position: sticky; top: 24px; overflow: hidden; }
+
+    .result-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 20px 22px;
+      background: var(--ink);
+      color: white;
+    }
+
+    .result-head p { margin: 5px 0 0; color: #c9c5ba; font-size: 0.82rem; }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #b7d29e;
+      box-shadow: 0 0 0 6px rgba(183, 210, 158, 0.14);
+    }
+
+    .hero-result {
+      padding: 28px 22px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-result span { color: var(--muted); font-size: 0.83rem; }
+    .hero-result strong {
+      display: block;
+      margin-top: 6px;
+      color: var(--accent-dark);
+      font-family: Georgia, serif;
+      font-size: clamp(2.8rem, 8vw, 5.2rem);
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    .hero-result small { margin-left: 6px; font-family: inherit; font-size: 1rem; color: var(--muted); }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .metric {
+      min-height: 112px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .metric:nth-child(odd) { border-right: 1px solid var(--line); }
+    .metric span { display: block; margin-bottom: 9px; color: var(--muted); font-size: 0.78rem; }
+    .metric strong { font-size: 1.45rem; font-weight: 750; }
+    .metric small { color: var(--muted); font-weight: 400; }
+
+    .formula {
+      margin: 0;
+      padding: 20px 22px;
+      background: #ece7dd;
+      color: #555248;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+    }
+
+    .notice {
+      margin: 0;
+      padding: 14px 22px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .error {
+      margin-top: 14px;
+      border-left: 3px solid var(--accent);
+      padding: 10px 12px;
+      background: #fff0eb;
+      color: var(--accent-dark);
+      font-size: 0.86rem;
+    }
+
+    @media (max-width: 820px) {
+      header { grid-template-columns: 1fr; }
+      .plan-badge { justify-self: start; }
+      .workspace { grid-template-columns: 1fr; }
+      .result-panel { position: static; }
+    }
+
+    @media (max-width: 520px) {
+      .page { width: min(100% - 20px, 1120px); padding-top: 28px; }
+      .form-panel { padding: 20px 16px; }
+      .fields { grid-template-columns: 1fr; }
+      .metric { padding: 16px; }
+      .result-head, .hero-result, .formula, .notice { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <p class="eyebrow">Interior material planner</p>
+        <h1>磁磚用量<br>概算工具</h1>
+        <p class="intro">輸入地坪與磁磚資料，即時計算施工面積、含耗損片數、購買箱數與材料預算。</p>
+      </div>
+      <div class="plan-badge">A15530027 黃麟珍 · 2026</div>
+    </header>
+
+    <div class="workspace">
+      <form class="panel form-panel" id="calculator" novalidate>
+        <section class="section">
+          <div class="section-heading">
+            <h2><span class="step">1</span>施工面積</h2>
+            <div class="mode-switch" aria-label="面積輸入方式">
+              <button class="chip active" type="button" data-mode="area">直接輸入</button>
+              <button class="chip" type="button" data-mode="dimensions">長寬計算</button>
+            </div>
+          </div>
+
+          <div class="fields" id="area-fields">
+            <label>鋪設面積
+              <span class="input-wrap"><input id="area" type="number" min="0" step="0.01" value="740"><span class="unit">m²</span></span>
+            </label>
+            <label>扣除面積
+              <span class="input-wrap"><input id="deduction" type="number" min="0" step="0.01" value="0"><span class="unit">m²</span></span>
+            </label>
+          </div>
+
+          <div class="fields hidden" id="dimension-fields">
+            <label>空間長度
+              <span class="input-wrap"><input id="length" type="number" min="0" step="0.01" value="4"><span class="unit">m</span></span>
+            </label>
+            <label>空間寬度
+              <span class="input-wrap"><input id="width" type="number" min="0" step="0.01" value="3"><span class="unit">m</span></span>
+            </label>
+            <label>扣除面積
+              <span class="input-wrap"><input id="dimension-deduction" type="number" min="0" step="0.01" value="0"><span class="unit">m²</span></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <h2><span class="step">2</span>磁磚規格</h2>
+          </div>
+          <div class="presets" aria-label="常用磁磚尺寸">
+            <button class="chip" type="button" data-tile="30">30 × 30</button>
+            <button class="chip active" type="button" data-tile="60">60 × 60</button>
+            <button class="chip" type="button" data-tile="80">80 × 80</button>
+          </div>
+          <div class="fields" style="margin-top: 14px">
+            <label>磁磚長度
+              <span class="input-wrap"><input id="tile-length" type="number" min="0" step="0.1" value="60"><span class="unit">cm</span></span>
+            </label>
+            <label>磁磚寬度
+              <span class="input-wrap"><input id="tile-width" type="number" min="0" step="0.1" value="60"><span class="unit">cm</span></span>
+            </label>
+            <label>每箱片數
+              <span class="input-wrap"><input id="tiles-per-box" type="number" min="1" step="1" value="4"><span class="unit">片</span></span>
+            </label>
+            <label>施工耗損
+              <span class="input-wrap"><input id="waste" type="number" min="0" max="100" step="0.5" value="10"><span class="unit">%</span></span>
+            </label>
+            <label>每箱單價（選填）
+              <span class="input-wrap"><input id="price" type="number" min="0" step="1" placeholder="例如 900"><span class="unit">NT$</span></span>
+            </label>
+          </div>
+        </section>
+
+        <div class="actions">
+          <button class="button" type="button" id="project-preset">載入一樓概算</button>
+          <button class="button secondary" type="reset">重設</button>
+          <button class="button secondary" type="button" id="copy-result">複製結果</button>
+        </div>
+        <p class="error hidden" id="error" role="alert"></p>
+      </form>
+
+      <aside class="panel result-panel" aria-live="polite">
+        <div class="result-head">
+          <div><h3>即時概算</h3><p id="result-label">60 × 60 cm · 耗損 10%</p></div>
+          <span class="status-dot" aria-hidden="true"></span>
+        </div>
+        <div class="hero-result">
+          <span>建議購買</span>
+          <strong><span id="boxes">566</span><small>箱</small></strong>
+        </div>
+        <div class="metrics">
+          <div class="metric"><span>淨施工面積</span><strong id="net-area">740 <small>m²</small></strong></div>
+          <div class="metric"><span>含耗損片數</span><strong id="required-tiles">2,262 <small>片</small></strong></div>
+          <div class="metric"><span>實際購買片數</span><strong id="purchase-tiles">2,264 <small>片</small></strong></div>
+          <div class="metric"><span>材料總價</span><strong id="total-price">未輸入</strong></div>
+        </div>
+        <p class="formula" id="formula">740 ÷ 0.36 × 1.10 = 2,262 片<br>2,262 ÷ 4 = 566 箱</p>
+        <p class="notice">本工具供前期概算。正式採購前請依現場尺寸、鋪貼方向、對花方式與產品包裝重新確認。</p>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const form = document.querySelector('#calculator');
+    const number = new Intl.NumberFormat('zh-TW', { maximumFractionDigits: 2 });
+    const money = new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', maximumFractionDigits: 0 });
+    let mode = 'area';
+
+    const value = (id) => Number(document.querySelector(`#${id}`).value);
+    const setText = (id, content) => { document.querySelector(`#${id}`).textContent = content; };
+
+    function calculate() {
+      const tileLength = value('tile-length');
+      const tileWidth = value('tile-width');
+      const tilesPerBox = value('tiles-per-box');
+      const waste = value('waste');
+      const unitPrice = value('price');
+      let grossArea;
+      let deduction;
+
+      if (mode === 'area') {
+        grossArea = value('area');
+        deduction = value('deduction');
+      } else {
+        grossArea = value('length') * value('width');
+        deduction = value('dimension-deduction');
+      }
+
+      const netArea = grossArea - deduction;
+      const tileArea = (tileLength / 100) * (tileWidth / 100);
+      const error = document.querySelector('#error');
+
+      if (![grossArea, deduction, tileLength, tileWidth, tilesPerBox, waste].every(Number.isFinite)
+          || grossArea <= 0 || deduction < 0 || netArea <= 0 || tileArea <= 0
+          || tilesPerBox < 1 || !Number.isInteger(tilesPerBox) || waste < 0 || waste > 100) {
+        error.textContent = '請確認面積與磁磚尺寸大於 0、扣除面積小於總面積、每箱片數為整數，耗損率介於 0% 到 100%。';
+        error.classList.remove('hidden');
+        return;
+      }
+
+      error.classList.add('hidden');
+      const rawTiles = netArea / tileArea;
+      const requiredTiles = Math.ceil(rawTiles * (1 + waste / 100));
+      const boxes = Math.ceil(requiredTiles / tilesPerBox);
+      const purchaseTiles = boxes * tilesPerBox;
+
+      setText('boxes', number.format(boxes));
+      document.querySelector('#net-area').innerHTML = `${number.format(netArea)} <small>m²</small>`;
+      document.querySelector('#required-tiles').innerHTML = `${number.format(requiredTiles)} <small>片</small>`;
+      document.querySelector('#purchase-tiles').innerHTML = `${number.format(purchaseTiles)} <small>片</small>`;
+      setText('total-price', unitPrice > 0 ? money.format(boxes * unitPrice) : '未輸入');
+      setText('result-label', `${number.format(tileLength)} × ${number.format(tileWidth)} cm · 耗損 ${number.format(waste)}%`);
+      document.querySelector('#formula').innerHTML = `${number.format(netArea)} ÷ ${number.format(tileArea)} × ${number.format(1 + waste / 100)} = ${number.format(requiredTiles)} 片<br>${number.format(requiredTiles)} ÷ ${number.format(tilesPerBox)} = ${number.format(boxes)} 箱`;
+    }
+
+    document.querySelectorAll('[data-mode]').forEach((button) => {
+      button.addEventListener('click', () => {
+        mode = button.dataset.mode;
+        document.querySelectorAll('[data-mode]').forEach((item) => item.classList.toggle('active', item === button));
+        document.querySelector('#area-fields').classList.toggle('hidden', mode !== 'area');
+        document.querySelector('#dimension-fields').classList.toggle('hidden', mode !== 'dimensions');
+        calculate();
+      });
+    });
+
+    document.querySelectorAll('[data-tile]').forEach((button) => {
+      button.addEventListener('click', () => {
+        document.querySelectorAll('[data-tile]').forEach((item) => item.classList.toggle('active', item === button));
+        document.querySelector('#tile-length').value = button.dataset.tile;
+        document.querySelector('#tile-width').value = button.dataset.tile;
+        calculate();
+      });
+    });
+
+    form.addEventListener('input', calculate);
+    form.addEventListener('reset', () => {
+      requestAnimationFrame(() => {
+        mode = 'area';
+        document.querySelectorAll('[data-mode]').forEach((item) => item.classList.toggle('active', item.dataset.mode === 'area'));
+        document.querySelectorAll('[data-tile]').forEach((item) => item.classList.toggle('active', item.dataset.tile === '60'));
+        document.querySelector('#area-fields').classList.remove('hidden');
+        document.querySelector('#dimension-fields').classList.add('hidden');
+        calculate();
+      });
+    });
+
+    document.querySelector('#project-preset').addEventListener('click', () => {
+      mode = 'area';
+      document.querySelector('#area').value = 740;
+      document.querySelector('#deduction').value = 0;
+      document.querySelector('#tile-length').value = 60;
+      document.querySelector('#tile-width').value = 60;
+      document.querySelector('#tiles-per-box').value = 4;
+      document.querySelector('#waste').value = 10;
+      document.querySelector('#price').value = '';
+      document.querySelectorAll('[data-mode]').forEach((item) => item.classList.toggle('active', item.dataset.mode === 'area'));
+      document.querySelectorAll('[data-tile]').forEach((item) => item.classList.toggle('active', item.dataset.tile === '60'));
+      document.querySelector('#area-fields').classList.remove('hidden');
+      document.querySelector('#dimension-fields').classList.add('hidden');
+      calculate();
+    });
+
+    document.querySelector('#copy-result').addEventListener('click', async () => {
+      calculate();
+      const text = `磁磚概算：${document.querySelector('#net-area').textContent.trim()}，含耗損 ${document.querySelector('#required-tiles').textContent.trim()}，建議購買 ${document.querySelector('#boxes').textContent} 箱（${document.querySelector('#purchase-tiles').textContent.trim()}）。`;
+      try {
+        await navigator.clipboard.writeText(text);
+        const button = document.querySelector('#copy-result');
+        button.textContent = '已複製';
+        setTimeout(() => { button.textContent = '複製結果'; }, 1400);
+      } catch {
+        document.querySelector('#error').textContent = '瀏覽器未允許自動複製，請手動選取右側結果。';
+        document.querySelector('#error').classList.remove('hidden');
+      }
+    });
+
+    calculate();
+  </script>
+</body>
+</html>
